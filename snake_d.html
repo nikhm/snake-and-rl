@@ -1,0 +1,184 @@
+<html>
+<head>
+<title>Snake</title>
+</head>
+<body>
+
+<script>
+function intersectRect(r1, r2) {
+  r1_left = r1.x; r1_right = r1.x + r1.width; r1_top = r1.y; r1_bottom = r1.y + height;
+  r2_left = r2.x; r1_right = r2.x + r1.width; r2_top = r1.y; r2_bottom = r2.y + height;
+  return !(r2_left > r1_right ||
+           r2_right < r1_left ||
+           r2_top > r1_bottom ||
+           r2_bottom < r1_top);
+}
+function collision(a,b) {
+	var l1 = a.x; var u1 = a.y; var r1 = a.x + a.width; var d1 = a.y + a.height;
+	var l2 = b.x; var u2 = b.y; var r2 = b.x + b.width; var d2 = b.y + b.height;
+	return !(l2 >= r1 || r2 <= l1 || u2 >= d1 || d2 <= u1);
+}
+</script>
+
+<script>
+var snake_color = "#000000";
+var apple_color = "red";
+var toSpawn = false;
+var gameStart; var gameOver;
+var dir = 3; // left - 1 up - 2 right - 3 down - 4
+var score = 0;
+var snk_elems = Array();
+var bs = 3;
+
+
+var gameArea = {
+    canvas : document.createElement("canvas"),
+    start : function() {
+        this.canvas.width = 300;
+        this.canvas.height = 200;
+        this.canvas.style = "border:1px solid #000000";
+        this.context = this.canvas.getContext("2d");
+        document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+        this.interval = setInterval(updateGameArea, 20);
+    },
+    clear : function() {
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+}
+
+
+gameArea.start();
+
+document.onkeydown = function(e) {
+    switch (e.keyCode) {
+        case 37:
+            //alert('left');
+            if(dir !== 3){dir = 1;}
+            break;
+        case 38:
+			//alert('up');
+            if(dir !== 4){dir = 2;}
+            break;
+        case 39:
+            //alert('right');
+            if(dir !== 1){dir = 3;}
+            break;
+        case 40:
+            //alert('down');
+            if(dir !== 2){dir = 4;}
+            break;
+	}
+};
+
+function apple(){
+	var randX, randY;
+	this.width = bs; this.height = bs;
+  this.x = Math.floor(Math.random() * gameArea.canvas.width);
+  this.y = Math.floor(Math.random() * gameArea.canvas.height);
+	this.color = apple_color;
+	this.eaten = false;
+	this.update = function(){
+		ctx = gameArea.context;
+		ctx.fillStyle = this.color;
+		ctx.fillRect(this.x, this.y, this.width, this.height);
+	}
+}
+
+
+food = new apple();
+
+console.log("screenHeightd:"+gameArea.canvas.height);
+
+function part(parent,x=null,y=null){
+	// Parent of this part. (x,y): Coordinates of this
+  var screenWidth = gameArea.canvas.width; var screenHeight = gameArea.canvas.height;
+  console.log("screenHeight:"+screenHeight);
+	this.width = bs; this.height = bs;
+	this.parent = parent;
+	this.color = snake_color;
+	this.x = 0; this.y = 0;
+	if(parent === null){
+		this.x = x; this.y = y;
+	}else{
+		this.x = parent.x;
+		this.y = parent.y;
+	}
+	this.update = function(){
+		if(this.parent === null){
+			if(dir == 1){this.x = this.x - bs;}
+			else if(dir == 2){this.y = this.y - bs;}
+			else if(dir == 3){this.x = this.x + bs;}
+			else{this.y = this.y + bs;}
+			// Check if food is in contact with head.
+			if( collision(this,food) ){
+				food.eaten = true;
+				score = score + 1;
+			}
+			// Check if it's biting its body.
+      var l = snk_elems.length;
+      console.log(l);
+			for(var i=3;i<l;i++){
+				if(collision(this,snk_elems[i])){
+          console.log(this.x); console.log(this.y);
+          console.log(snk_elems[i].x); console.log(snk_elems[i].y);
+					gameOver = true; break;
+				}
+			}
+      // Check if it's out of bounds
+      if( (this.x < 0 || this.y < 0) || ((this.x > screenWidth - bs) || (this.y > screenHeight - bs) ) ){
+        console.log(this.x);
+        console.log(this.y); console.log(screenHeight);
+        gameOver = true;
+      }
+		}else{
+			this.x = parent.x; this.y = parent.y;
+		}
+		ctx = gameArea.context;
+		ctx.fillStyle = this.color;
+    ctx.fillRect(this.x, this.y, this.width, this.height);
+	}
+}
+
+var front = new part(null,150,100);
+snk_elems.push(front);
+
+gameStart = false; gameOver = false;
+
+// Spawn works well
+function spawn(){
+	if(gameStart == true && toSpawn == true){
+		l = snk_elems.length;
+		parent = snk_elems[l-1];
+		snk_elems.push(new part(parent));
+	}
+}
+
+function updateGameArea(){
+	gameArea.clear();
+	var	l = snk_elems.length;
+	//alert(l);
+	for(var i=l-1;i>=0;i--){
+		snk_elems[i].update();
+	}
+	food.update();
+	if(food.eaten){
+		toSpawn = true;
+		spawn();
+		food = new apple();
+		food.eaten = false;
+	}
+	if(gameOver){
+		clearInterval(gameArea.interval);
+		gameArea.clear();
+		// Write on Canvas
+		gameArea.context.font = "30px Arial";
+		var scoreText = "Score: " +  score;
+		gameArea.context.strokeText(scoreText,0,30);
+	}
+	gameStart = true; toSpawn = false;
+}
+
+
+</script>
+</body>
+</html>
